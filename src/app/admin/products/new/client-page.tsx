@@ -9,10 +9,30 @@ type Brand = {
     name: string;
 };
 
+type InitialData = {
+    model: {
+        id: string;
+        name: string;
+        brand_id: string;
+        launch_year: number | null;
+        is_active: boolean;
+    };
+    variants: {
+        id: string;
+        storage: string;
+        base_price: number;
+        is_active: boolean;
+    }[];
+};
+
 export default function AddProductClientPage({
     brands,
+    initialData,
+    isEdit = false,
 }: {
     brands: Brand[];
+    initialData?: InitialData;
+    isEdit?: boolean;
 }) {
     const [canSave, setCanSave] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -23,7 +43,7 @@ export default function AddProductClientPage({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">
-                    Add Product
+                    {isEdit ? "Edit Product" : "Add Product"}
                 </h1>
 
                 <div className="space-x-2">
@@ -37,8 +57,8 @@ export default function AddProductClientPage({
                     <button
                         disabled={!canSave || isSaving}
                         className={`rounded px-4 py-2 text-white ${!canSave || isSaving
-                                ? "bg-gray-400 cursor-not-allowed"
-                                : "bg-black hover:bg-gray-800"
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-black hover:bg-gray-800"
                             }`}
                         onClick={() => {
                             window.dispatchEvent(
@@ -46,7 +66,11 @@ export default function AddProductClientPage({
                             );
                         }}
                     >
-                        {isSaving ? "Saving..." : "Save Product"}
+                        {isSaving
+                            ? "Saving..."
+                            : isEdit
+                                ? "Save Changes"
+                                : "Save Product"}
                     </button>
                 </div>
             </div>
@@ -61,6 +85,7 @@ export default function AddProductClientPage({
 
                         <ProductFormClient
                             brands={brands}
+                            initialData={initialData}
                             onValidityChange={setCanSave}
                             onSavingChange={setIsSaving}
                         />

@@ -27,19 +27,20 @@ export default async function ProductsPage() {
     const { data, error } = (await supabaseServer
         .from("phone_variants")
         .select(`
+        id,
+        storage,
+        base_price,
+        is_active,
+        phone_models (
             id,
-            storage,
-            base_price,
+            name,
             is_active,
-            phone_models (
-                id,
-                name,
-                is_active,
-                brands (
-                    name
-                )
+            brands (
+                name
             )
-        `)
+        )
+    `)
+        .eq("is_active", true)
         .order("created_at", { ascending: false })) as {
             data: ProductRow[] | null;
             error: any;
@@ -127,8 +128,8 @@ export default async function ProductsPage() {
                                 <td className="p-4">
                                     <span
                                         className={`rounded px-2 py-1 text-xs ${model.isActive
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-gray-200 text-gray-600"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-gray-200 text-gray-600"
                                             }`}
                                     >
                                         {model.isActive
