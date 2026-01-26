@@ -1,120 +1,136 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-type BrandRow = {
+type ModelRow = {
     id: string;
     name: string;
     is_active: boolean;
 };
 
-type ModelCountRow = {
-    brand_id: string;
+type VariantCountRow = {
+    model_id: string;
     count: number;
 };
 
-export default async function ProductsPage() {
-    // 1️⃣ Fetch all brands
-    const { data: brands, error: brandError } = await supabaseServer
+export default async function BrandModelsPage({
+    params,
+}: {
+    params: Promise<{ brandId: string }>;
+}) {
+    const { brandId } = await params;
+
+    // 1️⃣ Fetch brand info
+    const { data: brand } = await supabaseServer
         .from("brands")
+        .select("id, name")
+        .eq("id", brandId)
+        .single();
+
+    // 2️⃣ Fetch models for this brand
+    const { data: models, error } = await supabaseServer
+        .from("phone_models")
         .select("id, name, is_active")
+        .eq("brand_id", brandId)
         .order("name", { ascending: true });
 
-    if (brandError) {
-        throw new Error(brandError.message);
+    if (error) {
+        throw new Error(error.message);
     }
 
-    // 2️⃣ Fetch model counts grouped by brand
-    const { data: modelCounts, error: countError } =
-        await supabaseServer.rpc("brand_model_counts");
+    // 3️⃣ Fetch variant counts per model
+    const { data: variantCounts, error: countError } =
+        await supabaseServer.rpc("model_variant_counts", {
+            p_brand_id: brandId,
+        });
 
     if (countError) {
         throw new Error(countError.message);
     }
 
-    // 3️⃣ Convert counts to map
+    // 4️⃣ Build lookup map
     const countMap = new Map<string, number>();
-    (modelCounts as ModelCountRow[]).forEach((row) => {
-        countMap.set(row.brand_id, row.count);
+    (variantCounts as VariantCountRow[]).forEach((row) => {
+        countMap.set(row.model_id, row.count);
     });
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Page header */}
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-base font-semibold text-[var(--text-primary)]">
-                        Products
+                        {brand?.name} models
                     </h1>
                     <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                        Manage brands and their available models
+                        Manage phone models and their variants
                     </p>
                 </div>
 
                 <Link
-                    href="/admin/products/new"
-                    className="inline-flex h-9 items-center rounded-[var(--radius-md)] bg-[var(--primary)] px-4 text-sm font-medium text-white hover:bg-[var(--primary-hover)]"
+                    href="/admin/products"
+                    className="text-sm font-medium text-[var(--primary)] hover:underline"
                 >
-                    Add product
+                    ← Back to products
                 </Link>
             </div>
 
-            {/* Products table */}
+            {/* Models table */}
             <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface)]">
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="border-b border-[var(--border-default)] text-left text-xs font-medium text-[var(--text-muted)]">
-                            <th className="px-4 py-3">Brand</th>
-                            <th className="px-4 py-3">Models</th>
+                            <th className="px-4 py-3">Model</th>
+                            <th className="px-4 py-3">Variants</th>
                             <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3 text-right">Action</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        {brands?.map((brand: BrandRow) => (
+                        {models?.map((model: ModelRow) => (
                             <tr
-                                key={brand.id}
+                                key={model.id}
                                 className="border-b border-[var(--border-default)] last:border-b-0 hover:bg-[var(--bg-surface-hover)]"
                             >
                                 <td className="px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
-                                    {brand.name}
+                                    {model.name}
                                 </td>
 
                                 <td className="px-4 py-3 text-sm text-[var(--text-primary)]">
-                                    {countMap.get(brand.id) ?? 0}
+                                    {countMap.get(model.id) ?? 0}
                                 </td>
 
                                 <td className="px-4 py-3">
                                     <span
                                         className={[
                                             "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                                            brand.is_active
+                                            model.is_active
                                                 ? "bg-green-50 text-green-700"
                                                 : "bg-gray-100 text-gray-600",
                                         ].join(" ")}
                                     >
-                                        {brand.is_active ? "Active" : "Inactive"}
+                                        {model.is_active ? "Active" : "Inactive"}
                                     </span>
                                 </td>
 
                                 <td className="px-4 py-3 text-right">
                                     <Link
-                                        href={`/admin/products/${brand.id}`}
+                                        href={`/admin/products/${brandId}/${model.id}`}
                                         className="text-sm font-medium text-[var(--primary)] hover:underline"
                                     >
-                                        View models
+                                        View variants
                                     </Link>
                                 </td>
                             </tr>
                         ))}
 
-                        {(!brands || brands.length === 0) && (
+                        {(!models || models.length === 0) && (
                             <tr>
                                 <td
                                     colSpan={4}
                                     className="px-4 py-8 text-center text-sm text-[var(--text-muted)]"
                                 >
-                                    No products found
+                                    No models found for this brand
                                 </td>
                             </tr>
                         )}

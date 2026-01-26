@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
     { label: "Dashboard", href: "/admin/dashboard" },
     { label: "Orders", href: "/admin/orders" },
-    { label: "Users", href: "/admin/users" },
+    { label: "Customers", href: "/admin/customers" },
     { label: "Products", href: "/admin/products" },
 ];
 
@@ -14,12 +14,16 @@ export default function Sidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="fixed left-0 top-0 min-h-screen w-64 bg-gray-900 text-white">
-            <div className="border-b border-gray-800 p-4 text-xl font-bold">
-                ReCashify
+        <aside className="flex h-screen w-64 flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)]">
+            {/* Brand */}
+            <div className="flex h-14 items-center border-b border-[var(--border-default)] px-4">
+                <span className="text-sm font-semibold tracking-tight">
+                    ReCashify
+                </span>
             </div>
 
-            <nav className="space-y-1 p-4">
+            {/* Navigation */}
+            <nav className="flex flex-1 flex-col gap-1 px-2 py-3">
                 {navItems.map((item) => {
                     const isActive =
                         pathname === item.href ||
@@ -29,10 +33,12 @@ export default function Sidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`block rounded px-3 py-2 transition ${isActive
-                                    ? "bg-gray-800 text-white"
-                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                }`}
+                            className={[
+                                "flex h-9 items-center rounded-[var(--radius-md)] px-3 text-sm font-medium transition-colors",
+                                isActive
+                                    ? "bg-[var(--bg-surface-hover)] text-[var(--text-primary)]"
+                                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]",
+                            ].join(" ")}
                         >
                             {item.label}
                         </Link>
