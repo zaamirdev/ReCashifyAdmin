@@ -12,6 +12,7 @@ type Brand = {
 type StorageUnit = "GB" | "TB";
 
 type VariantInput = {
+    
     ram_gb: number | "";
     storage_value: number | "";
     storage_unit: StorageUnit;

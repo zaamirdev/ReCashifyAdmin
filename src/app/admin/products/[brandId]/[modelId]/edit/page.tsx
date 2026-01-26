@@ -1,5 +1,5 @@
 import { supabaseServer } from "@/lib/supabaseServer";
-import AddProductClientPage from "../../new/client-page";
+import ProductFormClient from "@/components/ProductFormClient";
 
 export default async function EditProductPage({
     params,
@@ -35,9 +35,19 @@ export default async function EditProductPage({
     const { data: variants, error: variantError } =
         await supabaseServer
             .from("phone_variants")
-            .select("id, storage, base_price, is_active, phone_models(id)")
-            .eq("phone_models.id", modelId)
-            .eq("is_active", true);
+            .select(`
+      id,
+      variant,
+      base_price,
+      is_active,
+      phone_models (
+        id
+      )
+    `)
+            .eq("phone_model_id", modelId)
+            .eq("is_active", true)
+            .order("base_price");
+
 
     if (variantError) {
         throw new Error(variantError.message);
@@ -49,11 +59,11 @@ export default async function EditProductPage({
         );
 
     return (
-        <AddProductClientPage
+        <ProductFormClient
             brands={brands ?? []}
             initialData={{
                 model,
-                variants: filteredVariants,
+                variants: variants ?? [],
             }}
             isEdit
         />
