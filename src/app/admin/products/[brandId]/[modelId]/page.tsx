@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { db } from "@/lib/db";
 import VariantsEditor from "@/components/VariantsEditor";
 
 export default async function ModelVariantsPage({
@@ -10,22 +10,30 @@ export default async function ModelVariantsPage({
     const { brandId, modelId } = await params;
 
     // Fetch model info
-    const { data: model } = await supabaseServer
-        .from("phone_models")
-        .select("id, name")
-        .eq("id", modelId)
-        .single();
+    const modelResult = await db.query(
+        `
+        SELECT id, name
+        FROM phone_models
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [modelId]
+    );
+
+    const model = modelResult.rows[0];
 
     // Fetch variants
-    const { data: variants, error } = await supabaseServer
-        .from("phone_variants")
-        .select("id, variant, base_price, is_active")
-        .eq("phone_model_id", modelId)
-        .order("base_price", { ascending: true });
+    const variantsResult = await db.query(
+        `
+        SELECT id, variant, base_price, is_active
+        FROM phone_variants
+        WHERE phone_model_id = $1
+        ORDER BY base_price ASC
+        `,
+        [modelId]
+    );
 
-    if (error) {
-        throw new Error(error.message);
-    }
+    const variants = variantsResult.rows;
 
     return (
         <div className="flex flex-col gap-6">

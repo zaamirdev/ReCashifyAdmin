@@ -196,7 +196,7 @@ export default function AddProductClientPage({
                             </select>
 
                             {/* Base price with ₹ */}
-                            <div className="flex items-center rounded border px-2">
+                            <div className="flex items-center rounded px-2">
                                 <span className="text-sm text-gray-500">₹</span>
                                 <input
                                     type="number"

@@ -1,17 +1,19 @@
-import { supabaseServer } from "@/lib/supabaseServer";
+import { db } from "@/lib/db";
 import AddProductClientPage from "./client-page";
 
-
 export default async function AddProductPage() {
-    const { data: brands, error } = await supabaseServer
-        .from("brands")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name");
+    const result = await db.query(
+        `
+        SELECT id, name
+        FROM brands
+        WHERE is_active = true
+        ORDER BY name
+        `
+    );
 
-    if (error) {
-        throw new Error(error.message);
-    }
-
-    return <AddProductClientPage brands={brands ?? []} />;
+    return (
+        <AddProductClientPage
+            brands={result.rows ?? []}
+        />
+    );
 }

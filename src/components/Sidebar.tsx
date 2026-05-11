@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
     { label: "Dashboard", href: "/admin/dashboard" },
+    { label: "Sell Drafts", href: "/admin/sell-drafts" },
     { label: "Orders", href: "/admin/orders" },
     { label: "Customers", href: "/admin/customers" },
     { label: "Products", href: "/admin/products" },
@@ -18,7 +19,7 @@ export default function Sidebar() {
             {/* Brand */}
             <div className="flex h-14 items-center border-b border-[var(--border-default)] px-4">
                 <span className="text-sm font-semibold tracking-tight">
-                    ReCashify
+                    Noor Mobiles
                 </span>
             </div>
 

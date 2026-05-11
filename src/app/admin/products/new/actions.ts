@@ -1,6 +1,6 @@
 "use server";
 
-import { supabaseServer } from "@/lib/supabaseServer";
+import { db } from "@/lib/db";
 
 export type CreateProductPayload = {
     brand_id: string;
@@ -22,7 +22,9 @@ function slugify(text: string) {
         .replace(/^-+|-+$/g, "");
 }
 
-export async function createProduct(payload: CreateProductPayload) {
+export async function createProduct(
+    payload: CreateProductPayload
+) {
     const {
         brand_id,
         model_name,
@@ -31,7 +33,7 @@ export async function createProduct(payload: CreateProductPayload) {
         variants,
     } = payload;
 
-    /* ---------- Basic validation (server-side safety) ---------- */
+    /* ---------- Basic validation ---------- */
 
     if (!brand_id) {
         throw new Error("Brand is required");
@@ -47,12 +49,15 @@ export async function createProduct(payload: CreateProductPayload) {
 
     variants.forEach((v, index) => {
         if (!v.variant || v.variant.trim().length === 0) {
-            throw new Error(`Variant name missing at row ${index + 1}`);
+            throw new Error(
+                `Variant name missing at row ${index + 1}`
+            );
         }
 
         if (v.base_price <= 0) {
             throw new Error(
-                `Base price must be greater than 0 (row ${index + 1})`
+                `Base price must be greater than 0 (row ${index + 1
+                })`
             );
         }
     });
@@ -61,39 +66,49 @@ export async function createProduct(payload: CreateProductPayload) {
 
     const slug = slugify(model_name);
 
-    const { data: model, error: modelError } =
-        await supabaseServer
-            .from("phone_models")
-            .insert({
-                brand_id,
-                name: model_name.trim(),
-                slug,
-                launch_year: launch_year ?? null,
-                is_active,
-            })
-            .select("id")
-            .single();
+    const modelResult = await db.query(
+        `
+        INSERT INTO phone_models (
+            brand_id,
+            name,
+            slug,
+            launch_year,
+            is_active
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+        `,
+        [
+            brand_id,
+            model_name.trim(),
+            slug,
+            launch_year ?? null,
+            is_active,
+        ]
+    );
 
-    if (modelError) {
-        throw new Error(modelError.message);
-    }
+    const model = modelResult.rows[0];
 
     /* ---------- 2️⃣ Create variants ---------- */
 
-    const variantRows = variants.map((v) => ({
-        phone_model_id: model.id,
-        variant: v.variant.trim(),
-        base_price: v.base_price,
-        is_active: v.is_active,
-    }));
-
-    const { error: variantError } =
-        await supabaseServer
-            .from("phone_variants")
-            .insert(variantRows);
-
-    if (variantError) {
-        throw new Error(variantError.message);
+    for (const v of variants) {
+        await db.query(
+            `
+            INSERT INTO phone_variants (
+                phone_model_id,
+                variant,
+                base_price,
+                is_active
+            )
+            VALUES ($1, $2, $3, $4)
+            `,
+            [
+                model.id,
+                v.variant.trim(),
+                v.base_price,
+                v.is_active,
+            ]
+        );
     }
 
     /* ---------- Success ---------- */

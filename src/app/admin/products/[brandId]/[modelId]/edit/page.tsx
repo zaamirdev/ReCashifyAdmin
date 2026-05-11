@@ -1,4 +1,4 @@
-import { supabaseServer } from "@/lib/supabaseServer";
+import { db } from "@/lib/db";
 import ProductFormClient from "@/components/ProductFormClient";
 
 export default async function EditProductPage({
@@ -8,55 +8,52 @@ export default async function EditProductPage({
 }) {
     const { modelId } = await params;
 
-    // 1️⃣ Fetch brands (same as Add Product)
-    const { data: brands, error: brandsError } =
-        await supabaseServer
-            .from("brands")
-            .select("id, name")
-            .order("name");
+    // 1️⃣ Fetch brands
+    const brandsResult = await db.query(
+        `
+        SELECT id, name
+        FROM brands
+        ORDER BY name ASC
+        `
+    );
 
-    if (brandsError) {
-        throw new Error(brandsError.message);
-    }
+    const brands = brandsResult.rows;
 
     // 2️⃣ Fetch model
-    const { data: model, error: modelError } =
-        await supabaseServer
-            .from("phone_models")
-            .select("id, name, brand_id, launch_year, is_active")
-            .eq("id", modelId)
-            .single();
+    const modelResult = await db.query(
+        `
+        SELECT id, name, brand_id, launch_year, is_active
+        FROM phone_models
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [modelId]
+    );
 
-    if (modelError || !model) {
+    const model = modelResult.rows[0];
+
+    if (!model) {
         throw new Error("Model not found");
     }
 
     // 3️⃣ Fetch variants
-    const { data: variants, error: variantError } =
-        await supabaseServer
-            .from("phone_variants")
-            .select(`
-      id,
-      variant,
-      base_price,
-      is_active,
-      phone_models (
-        id
-      )
-    `)
-            .eq("phone_model_id", modelId)
-            .eq("is_active", true)
-            .order("base_price");
+    const variantsResult = await db.query(
+        `
+        SELECT
+            id,
+            variant,
+            base_price,
+            is_active,
+            phone_model_id
+        FROM phone_variants
+        WHERE phone_model_id = $1
+        AND is_active = true
+        ORDER BY base_price ASC
+        `,
+        [modelId]
+    );
 
-
-    if (variantError) {
-        throw new Error(variantError.message);
-    }
-
-    const filteredVariants =
-        (variants ?? []).filter(
-            (v) => v.phone_models !== null
-        );
+    const variants = variantsResult.rows;
 
     return (
         <ProductFormClient
@@ -68,5 +65,4 @@ export default async function EditProductPage({
             isEdit
         />
     );
-
 }

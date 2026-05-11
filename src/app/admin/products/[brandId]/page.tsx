@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { db } from "@/lib/db";
 
 type ModelRow = {
     id: string;
@@ -20,37 +20,51 @@ export default async function BrandModelsPage({
     const { brandId } = await params;
 
     // 1️⃣ Fetch brand info
-    const { data: brand } = await supabaseServer
-        .from("brands")
-        .select("id, name")
-        .eq("id", brandId)
-        .single();
+    const brandResult = await db.query(
+        `
+        SELECT id, name
+        FROM brands
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [brandId]
+    );
+
+    const brand = brandResult.rows[0];
 
     // 2️⃣ Fetch models for this brand
-    const { data: models, error } = await supabaseServer
-        .from("phone_models")
-        .select("id, name, is_active")
-        .eq("brand_id", brandId)
-        .order("name", { ascending: true });
+    const modelsResult = await db.query(
+        `
+        SELECT id, name, is_active
+        FROM phone_models
+        WHERE brand_id = $1
+        ORDER BY name ASC
+        `,
+        [brandId]
+    );
 
-    if (error) {
-        throw new Error(error.message);
-    }
+    const models = modelsResult.rows as ModelRow[];
 
     // 3️⃣ Fetch variant counts per model
-    const { data: variantCounts, error: countError } =
-        await supabaseServer.rpc("model_variant_counts", {
-            p_brand_id: brandId,
-        });
+    const variantCountsResult = await db.query(
+        `
+        SELECT *
+        FROM model_variant_counts($1)
+        `,
+        [brandId]
+    );
 
-    if (countError) {
-        throw new Error(countError.message);
-    }
+    const variantCounts =
+        variantCountsResult.rows as VariantCountRow[];
 
     // 4️⃣ Build lookup map
     const countMap = new Map<string, number>();
-    (variantCounts as VariantCountRow[]).forEach((row) => {
-        countMap.set(row.model_id, row.count);
+
+    variantCounts.forEach((row) => {
+        countMap.set(
+            row.model_id,
+            Number(row.count)
+        );
     });
 
     return (
@@ -109,7 +123,9 @@ export default async function BrandModelsPage({
                                                 : "bg-gray-100 text-gray-600",
                                         ].join(" ")}
                                     >
-                                        {model.is_active ? "Active" : "Inactive"}
+                                        {model.is_active
+                                            ? "Active"
+                                            : "Inactive"}
                                     </span>
                                 </td>
 

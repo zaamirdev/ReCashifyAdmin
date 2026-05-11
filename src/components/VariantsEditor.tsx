@@ -1,6 +1,6 @@
 "use client";
 
-import { supabaseBrowser } from "@/lib/supabaseBrowser";
+import { updateVariant } from "@/app/actions/updateVariant";
 import { useState } from "react";
 
 type Variant = {
@@ -35,20 +35,22 @@ export default function VariantsEditor({
     const saveVariant = async (variant: Variant) => {
         setSavingId(variant.id);
 
-        const { error } = await supabaseBrowser
-            .from("phone_variants")
-            .update({
+        try {
+            await updateVariant({
+                id: variant.id,
                 variant: variant.variant,
                 base_price: variant.base_price,
                 is_active: variant.is_active,
-            })
-            .eq("id", variant.id);
+            });
+        } catch (error) {
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "Failed to save variant"
+            );
+        }
 
         setSavingId(null);
-
-        if (error) {
-            alert(error.message);
-        }
     };
 
     return (

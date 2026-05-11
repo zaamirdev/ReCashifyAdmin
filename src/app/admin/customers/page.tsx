@@ -1,4 +1,29 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type AuthUser = {
+    id: string;
+    email: string;
+    created_at: string;
+    last_sign_in_at: string | null;
+    banned_until?: string | null;
+};
+
 export default function UsersPage() {
+    const [users, setUsers] = useState<AuthUser[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch("/api/admin/users")
+            .then((res) => res.json())
+            .then((data) => {
+                setUsers(data);
+                setLoading(false);
+            })
+            .catch(() => setLoading(false));
+    }, []);
+
     return (
         <div className="flex flex-col gap-6">
             {/* Page header */}
@@ -13,7 +38,7 @@ export default function UsersPage() {
                 </div>
             </div>
 
-            {/* Filters */}
+            {/* Filters (UI only for now) */}
             <div className="flex flex-wrap items-center gap-3">
                 <input
                     type="text"
@@ -42,27 +67,42 @@ export default function UsersPage() {
                     </thead>
 
                     <tbody>
-                        <UserRow
-                            name="Amit Sharma"
-                            email="amit.sharma@email.com"
-                            orders="12"
-                            status="Active"
-                            joined="Jan 12, 2025"
-                        />
-                        <UserRow
-                            name="Neha Verma"
-                            email="neha.verma@email.com"
-                            orders="5"
-                            status="Active"
-                            joined="Mar 03, 2025"
-                        />
-                        <UserRow
-                            name="Rahul Mehta"
-                            email="rahul.mehta@email.com"
-                            orders="0"
-                            status="Inactive"
-                            joined="Dec 18, 2024"
-                        />
+                        {loading ? (
+                            <tr>
+                                <td
+                                    colSpan={5}
+                                    className="px-4 py-6 text-center text-sm text-[var(--text-secondary)]"
+                                >
+                                    Loading customers…
+                                </td>
+                            </tr>
+                        ) : users.length === 0 ? (
+                            <tr>
+                                <td
+                                    colSpan={5}
+                                    className="px-4 py-6 text-center text-sm text-[var(--text-secondary)]"
+                                >
+                                    No customers found
+                                </td>
+                            </tr>
+                        ) : (
+                            users.map((user) => (
+                                <UserRow
+                                    key={user.id}
+                                    name={user.email}
+                                    email={user.email}
+                                    orders="—"
+                                    status={
+                                        user.banned_until
+                                            ? "Inactive"
+                                            : "Active"
+                                    }
+                                    joined={new Date(
+                                        user.created_at
+                                    ).toDateString()}
+                                />
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { db } from "@/lib/db";
 
 type BrandRow = {
     id: string;
@@ -14,27 +14,35 @@ type ModelCountRow = {
 
 export default async function ProductsPage() {
     // 1️⃣ Fetch all brands
-    const { data: brands, error: brandError } = await supabaseServer
-        .from("brands")
-        .select("id, name, is_active")
-        .order("name", { ascending: true });
+    const brandsResult = await db.query(
+        `
+        SELECT id, name, is_active
+        FROM brands
+        ORDER BY name ASC
+        `
+    );
 
-    if (brandError) {
-        throw new Error(brandError.message);
-    }
+    const brands = brandsResult.rows as BrandRow[];
 
     // 2️⃣ Fetch model counts grouped by brand
-    const { data: modelCounts, error: countError } =
-        await supabaseServer.rpc("brand_model_counts");
+    const modelCountsResult = await db.query(
+        `
+        SELECT *
+        FROM brand_model_counts()
+        `
+    );
 
-    if (countError) {
-        throw new Error(countError.message);
-    }
+    const modelCounts =
+        modelCountsResult.rows as ModelCountRow[];
 
     // 3️⃣ Convert counts to map
     const countMap = new Map<string, number>();
-    (modelCounts as ModelCountRow[]).forEach((row) => {
-        countMap.set(row.brand_id, row.count);
+
+    modelCounts.forEach((row) => {
+        countMap.set(
+            row.brand_id,
+            Number(row.count)
+        );
     });
 
     return (
@@ -93,7 +101,9 @@ export default async function ProductsPage() {
                                                 : "bg-gray-100 text-gray-600",
                                         ].join(" ")}
                                     >
-                                        {brand.is_active ? "Active" : "Inactive"}
+                                        {brand.is_active
+                                            ? "Active"
+                                            : "Inactive"}
                                     </span>
                                 </td>
 
@@ -108,16 +118,17 @@ export default async function ProductsPage() {
                             </tr>
                         ))}
 
-                        {(!brands || brands.length === 0) && (
-                            <tr>
-                                <td
-                                    colSpan={4}
-                                    className="px-4 py-8 text-center text-sm text-[var(--text-muted)]"
-                                >
-                                    No products found
-                                </td>
-                            </tr>
-                        )}
+                        {(!brands ||
+                            brands.length === 0) && (
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="px-4 py-8 text-center text-sm text-[var(--text-muted)]"
+                                    >
+                                        No products found
+                                    </td>
+                                </tr>
+                            )}
                     </tbody>
                 </table>
             </div>
